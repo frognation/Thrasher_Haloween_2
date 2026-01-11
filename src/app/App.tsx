@@ -163,14 +163,19 @@ export default function App() {
   }, []);
 
   return (
-    <div className="bg-black relative h-[100dvh] w-full flex items-center justify-center overflow-hidden" data-name="Halloween Poster">
+    <div 
+      className="bg-black relative h-[100dvh] w-full flex items-center justify-center overflow-hidden select-none touch-none" 
+      data-name="Halloween Poster"
+      style={{ isolation: 'isolate' }}
+    >
       <div 
         style={{ 
           transform: `scale(${scale})`,
           width: `${BASE_WIDTH}px`,
           height: `${BASE_HEIGHT + CONTROLS_HEIGHT}px`,
           position: 'relative',
-          transition: 'transform 0.2s ease-out'
+          transition: 'transform 0.2s ease-out',
+          pointerEvents: 'auto'
         }}
         className="flex flex-col items-center"
       >
