@@ -10,10 +10,14 @@ export default function App() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const [lightningOpacity, setLightningOpacity] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   
   const topVideoRef = useRef<HTMLVideoElement>(null);
   const bottomVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   const resolveAsset = useCallback((path: string) => {
     // Ensure assets work both in dev ("/") and on GitHub Pages base ("/Thrasher-Haloween/")
@@ -57,8 +61,17 @@ export default function App() {
   );
 
   const handleClipEnded = useCallback(() => {
-    goToClip("next");
-  }, [goToClip]);
+    if (isExporting) {
+      if (clipIndex < bottomClips.length - 1) {
+        setClipIndex(prev => prev + 1);
+      } else {
+        // End of last clip
+        stopExport();
+      }
+    } else {
+      goToClip("next");
+    }
+  }, [goToClip, isExporting, clipIndex, bottomClips.length]);
 
   useEffect(() => {
     const videos = [topVideoRef.current, bottomVideoRef.current];
@@ -143,6 +156,49 @@ export default function App() {
     setIsCandleMode(mode === 'candle');
   };
 
+  const startExport = async () => {
+    if (!canvasRef.current) return;
+    
+    // Reset to first clip
+    setClipIndex(0);
+    setIsExporting(true);
+    setIsPlaying(true);
+    
+    const stream = canvasRef.current.captureStream(30);
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 5000000 // 5Mbps
+    });
+    
+    mediaRecorderRef.current = mediaRecorder;
+    recordedChunksRef.current = [];
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'thrasher-halloween-export.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+      setIsExporting(false);
+    };
+    
+    mediaRecorder.start();
+  };
+
+  const stopExport = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
   const [scale, setScale] = useState(1);
   const BASE_WIDTH = 851.19; // 709.324 * 1.2
   const BASE_HEIGHT = 1063.99; // 886.655 * 1.2
@@ -162,12 +218,74 @@ export default function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Canvas rendering loop for export
+  useEffect(() => {
+    if (!isExporting || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+
+    const render = () => {
+      const bottomVideo = bottomVideoRef.current;
+      const topVideo = topVideoRef.current;
+
+      if (bottomVideo && topVideo) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Define layers based on isTopLayerFirst
+        const firstVideo = isTopLayerFirst ? topVideo : bottomVideo;
+        const secondVideo = isTopLayerFirst ? bottomVideo : topVideo;
+        
+        // Calculate opacity for the video that has lightning effect
+        const effectLayerOpacity = isCandleMode ? 1 : lightningOpacity;
+
+        // Draw first layer
+        ctx.globalAlpha = 1;
+        ctx.drawImage(firstVideo, 0, 0, canvas.width, canvas.height);
+
+        if (isCandleMode && isHovering) {
+          // Setup masking for second layer
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(mousePos.x, mousePos.y, 284, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.globalAlpha = 1;
+          ctx.drawImage(secondVideo, 0, 0, canvas.width, canvas.height);
+          ctx.restore();
+          
+          // Add candle/glow effect if needed (optional for canvas)
+          // Since the CSS version uses transparent radial gradient, 
+          // we are effectively doing the opposite with clip() for simplicity and clarity.
+        } else {
+          ctx.globalAlpha = effectLayerOpacity;
+          ctx.drawImage(secondVideo, 0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isExporting, isTopLayerFirst, isCandleMode, isHovering, mousePos, lightningOpacity]);
+
   return (
     <div 
       className="bg-black relative h-[100dvh] w-full flex items-center justify-center overflow-hidden select-none touch-none" 
       data-name="Halloween Poster"
       style={{ isolation: 'isolate' }}
     >
+      {/* Hidden Canvas for Export */}
+      <canvas 
+        ref={canvasRef} 
+        width={BASE_WIDTH} 
+        height={BASE_HEIGHT} 
+        className="hidden"
+      />
+
       <div 
         style={{ 
           transform: `scale(${scale})`,
@@ -278,6 +396,22 @@ export default function App() {
                   isTopLayerFirst ? 'text-[#d9d9d9]' : 'text-black'
                 }`}>
                   {isTopLayerFirst ? 'ON' : 'OFF'}
+                </p>
+              </div>
+            </button>
+
+            {/* Export Button */}
+            <button 
+              onClick={startExport}
+              disabled={isExporting}
+              className={`content-stretch flex flex-col items-center justify-center overflow-clip px-[7px] py-[8px] h-[42px] min-w-[80px] cursor-pointer transition-all ${
+                isExporting ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'
+              }`}
+              data-name="export"
+            >
+              <div className="content-stretch flex h-[28px] items-center justify-center relative rounded-[10px] shrink-0 w-full px-4 border border-solid border-[#d9d9d9]">
+                <p className="font-['Helvetica:CE_Medium',sans-serif] leading-[normal] not-italic relative shrink-0 text-[16.812px] text-nowrap text-[#d9d9d9]">
+                  {isExporting ? 'RECORDING...' : 'EXPORT'}
                 </p>
               </div>
             </button>

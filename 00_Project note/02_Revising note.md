@@ -13,3 +13,4 @@
 - [x] Push all changes to GitHub repositories.
 - [x] Archive conversation history to workspace.
 - [x] Fix persistent scroll issue on small screens: Identified and removed unnecessary overflow by fixing body/html height and adding touch-none.
+- [x] Implement Video Export feature (Sequential playback of 4 clips + interaction recording + MP4 download).
