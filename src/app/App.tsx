@@ -20,10 +20,15 @@ export default function App() {
   const recordedChunksRef = useRef<Blob[]>([]);
 
   const resolveAsset = useCallback((path: string) => {
-    // Ensure assets work both in dev ("/") and on GitHub Pages base ("/Thrasher-Haloween/")
+    // Ensure assets work both in dev ("/") and on GitHub Pages base ("/Thrasher_Haloween_2/")
     const base = import.meta.env.BASE_URL.endsWith('/') 
       ? import.meta.env.BASE_URL 
       : `${import.meta.env.BASE_URL}/`;
+    
+    // If path already starts with the base or is a full URL, return as is
+    if (path.startsWith('http') || path.startsWith(base)) return path;
+    
+    // Otherwise, prepend base
     return `${base}${path}`;
   }, []);
 
