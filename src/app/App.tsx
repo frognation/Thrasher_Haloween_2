@@ -179,6 +179,7 @@ export default function App() {
           onMouseMove={handleMouseMove}
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
+          style={{ cursor: isHovering ? 'none' : 'auto' }}
         >
           {/* Bottom video layer */}
           <div 
@@ -243,6 +244,7 @@ export default function App() {
               <img alt="" className="block max-w-none size-full" src={imgSubtract} />
             </div>
           </div>
+
         </div>
 
         {/* Control Buttons Container */}
