@@ -4,3 +4,4 @@ playwright-report
 *.log
 tmp
 .DS_Store
+.vercel

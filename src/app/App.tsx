@@ -150,11 +150,12 @@ export default function App() {
 
   useEffect(() => {
     const handleResize = () => {
-      const vh = window.innerHeight * 0.9;
-      const vw = window.innerWidth * 0.9;
+      const padding = 40; // Total horizontal/vertical padding
+      const vh = window.innerHeight - padding;
+      const vw = window.innerWidth - padding;
       const scaleH = vh / (BASE_HEIGHT + CONTROLS_HEIGHT);
       const scaleW = vw / BASE_WIDTH;
-      setScale(Math.min(scaleH, scaleW, 1.2)); // Allow it to grow a bit but not too much if window is huge
+      setScale(Math.min(scaleH, scaleW, 1.2)); 
     };
     handleResize();
     window.addEventListener("resize", handleResize);
@@ -162,7 +163,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="bg-black relative min-h-screen w-full flex items-center justify-center overflow-hidden p-4" data-name="Halloween Poster">
+    <div className="bg-black relative h-[100dvh] w-full flex items-center justify-center overflow-hidden" data-name="Halloween Poster">
       <div 
         style={{ 
           transform: `scale(${scale})`,
