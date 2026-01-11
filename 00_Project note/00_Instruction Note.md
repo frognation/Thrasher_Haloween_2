@@ -12,3 +12,11 @@ For every task requested by the user, the agent will follow this process:
 
 ## UI/UX Specifics
 - **Mouse Cursor**: The default mouse cursor should be hidden whenever it is over the poster container. No custom cursor icon is needed at this time.
+- **Scroll Lock**: The app should use `100dvh` and `overflow: hidden` on the root elements to prevent accidental scrolling on mobile/small screens.
+
+## Release Management
+- **Versioning**: Follow Semantic Versioning (`vMajor.Minor.Patch`).
+  - Major: Large changes or total redesigns.
+  - Minor: New features or significant tweaks.
+  - Patch: Bug fixes and minor layout adjustments.
+- **Branch**: Always use the `main` branch as the target for new releases.
