@@ -183,7 +183,10 @@ export default function App() {
           {/* Bottom video layer */}
           <div 
             className="absolute inset-0"
-            style={{ zIndex: isTopLayerFirst ? 1 : 2 }}
+            style={{ 
+              zIndex: isTopLayerFirst ? 1 : 2,
+              opacity: !isTopLayerFirst ? (isCandleMode ? 1 : lightningOpacity) : 1
+            }}
           >
             <video 
               ref={bottomVideoRef}
@@ -195,6 +198,14 @@ export default function App() {
               preload="auto"
               src={currentBottomSrc}
               onEnded={handleClipEnded}
+              style={{
+                maskImage: !isTopLayerFirst && isCandleMode && isHovering 
+                  ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
+                  : 'none',
+                WebkitMaskImage: !isTopLayerFirst && isCandleMode && isHovering 
+                  ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
+                  : 'none'
+              }}
             >
             </video>
           </div>
@@ -204,7 +215,7 @@ export default function App() {
             className="absolute inset-0"
             style={{ 
               zIndex: isTopLayerFirst ? 2 : 1,
-              opacity: isCandleMode ? 1 : lightningOpacity
+              opacity: isTopLayerFirst ? (isCandleMode ? 1 : lightningOpacity) : 1
             }}
           >
             <video 
@@ -217,10 +228,10 @@ export default function App() {
               preload="auto"
               src={currentTopSrc}
               style={{
-                maskImage: isCandleMode && isHovering 
+                maskImage: isTopLayerFirst && isCandleMode && isHovering 
                   ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
                   : 'none',
-                WebkitMaskImage: isCandleMode && isHovering 
+                WebkitMaskImage: isTopLayerFirst && isCandleMode && isHovering 
                   ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
                   : 'none'
               }}
