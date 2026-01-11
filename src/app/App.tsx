@@ -12,8 +12,8 @@ export default function App() {
   const [lightningOpacity, setLightningOpacity] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
   
-  const topVideoRef = useRef<HTMLVideoElement>(null);
-  const bottomVideoRef = useRef<HTMLVideoElement>(null);
+  const topVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const bottomVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -71,27 +71,26 @@ export default function App() {
     } else {
       goToClip("next");
     }
-  }, [goToClip, isExporting, clipIndex, bottomClips.length]);
+  }, [goToClip, isExporting, clipIndex]);
 
   useEffect(() => {
-    const videos = [topVideoRef.current, bottomVideoRef.current];
-
-    videos.forEach((video) => {
-      if (!video) return;
-
-      try {
-        video.currentTime = 0;
-      } catch {
-        // ignore
-      }
-
-      if (isPlaying) {
-        video.play().catch(() => undefined);
-      } else {
-        video.pause();
-      }
+    // Synchronize all videos based on isPlaying and clipIndex
+    bottomClips.forEach((_, index) => {
+      const videos = [topVideoRefs.current[index], bottomVideoRefs.current[index]];
+      videos.forEach(video => {
+        if (video) {
+          if (isPlaying && index === clipIndex) {
+            video.play().catch(() => undefined);
+          } else if (index !== clipIndex || !isPlaying) {
+            video.pause();
+            if (index !== clipIndex) {
+              video.currentTime = 0;
+            }
+          }
+        }
+      });
     });
-  }, [clipIndex, isPlaying]);
+  }, [isPlaying, clipIndex, bottomClips.length]);
 
   // Lightning effect
   useEffect(() => {
@@ -138,16 +137,6 @@ export default function App() {
 
   // Play/Pause toggle
   const togglePlayPause = () => {
-    const videos = [topVideoRef.current, bottomVideoRef.current];
-    videos.forEach(video => {
-      if (video) {
-        if (isPlaying) {
-          video.pause();
-        } else {
-          video.play().catch(() => undefined);
-        }
-      }
-    });
     setIsPlaying(!isPlaying);
   };
 
@@ -234,8 +223,8 @@ export default function App() {
     let animationFrameId: number;
 
     const render = () => {
-      const bottomVideo = bottomVideoRef.current;
-      const topVideo = topVideoRef.current;
+      const bottomVideo = bottomVideoRefs.current[clipIndex];
+      const topVideo = topVideoRefs.current[clipIndex];
 
       if (bottomVideo && topVideo) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -305,70 +294,70 @@ export default function App() {
           onMouseLeave={() => setIsHovering(false)}
           style={{ cursor: isHovering ? 'none' : 'auto' }}
         >
-          {/* Bottom video layer */}
-          <div 
-            className="absolute inset-0"
-            style={{ 
-              zIndex: isTopLayerFirst ? 1 : 2,
-              opacity: !isTopLayerFirst ? (isCandleMode ? 1 : lightningOpacity) : 1
-            }}
-          >
-            <video 
-              ref={bottomVideoRef}
-              autoPlay 
-              className="absolute max-w-none object-cover size-full" 
-              controlsList="nodownload" 
-              playsInline
-              muted
-              preload="auto"
-              src={currentBottomSrc}
-              onEnded={handleClipEnded}
-              style={{
-                maskImage: !isTopLayerFirst && isCandleMode
-                  ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
-                  : 'none',
-                WebkitMaskImage: !isTopLayerFirst && isCandleMode 
-                  ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
-                  : 'none'
+          {/* Render all bottom clips */}
+          {bottomClips.map((src, index) => (
+            <div 
+              key={`bottom-${index}`}
+              className="absolute inset-0"
+              style={{ 
+                zIndex: isTopLayerFirst ? 1 : 2,
+                opacity: index === clipIndex ? (!isTopLayerFirst ? (isCandleMode ? 1 : lightningOpacity) : 1) : 0,
+                pointerEvents: index === clipIndex ? 'auto' : 'none',
+                visibility: index === clipIndex ? 'visible' : 'hidden'
               }}
             >
-            </video>
-          </div>
-
-          {/* Top video layer with masking */}
-          <div 
-            className="absolute inset-0"
-            style={{ 
-              zIndex: isTopLayerFirst ? 2 : 1,
-              opacity: isTopLayerFirst ? (isCandleMode ? 1 : lightningOpacity) : 1
-            }}
-          >
-            <video 
-              ref={topVideoRef}
-              autoPlay 
-              className="absolute max-w-none object-cover size-full" 
-              controlsList="nodownload" 
-              playsInline
-              muted
-              preload="auto"
-              src={currentTopSrc}
-              style={{
-                maskImage: isTopLayerFirst && isCandleMode 
-                  ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
-                  : 'none',
-                WebkitMaskImage: isTopLayerFirst && isCandleMode 
-                  ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
-                  : 'none'
-              }}
-            >
-            </video>
-
-            {/* Subtract image overlay (for reference) */}
-            <div className="absolute inset-0 pointer-events-none opacity-0">
-              <img alt="" className="block max-w-none size-full" src={imgSubtract} />
+              <video 
+                ref={el => bottomVideoRefs.current[index] = el}
+                className="absolute max-w-none object-cover size-full" 
+                controlsList="nodownload" 
+                playsInline
+                muted
+                preload="auto"
+                src={resolveAsset(src)}
+                onEnded={handleClipEnded}
+                style={{
+                  maskImage: index === clipIndex && !isTopLayerFirst && isCandleMode
+                    ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
+                    : 'none',
+                  WebkitMaskImage: index === clipIndex && !isTopLayerFirst && isCandleMode 
+                    ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
+                    : 'none'
+                }}
+              />
             </div>
-          </div>
+          ))}
 
+          {/* Render all top clips */}
+          {topClips.map((src, index) => (
+            <div 
+              key={`top-${index}`}
+              className="absolute inset-0"
+              style={{ 
+                zIndex: isTopLayerFirst ? 2 : 1,
+                opacity: index === clipIndex ? (isTopLayerFirst ? (isCandleMode ? 1 : lightningOpacity) : 1) : 0,
+                pointerEvents: index === clipIndex ? 'auto' : 'none',
+                visibility: index === clipIndex ? 'visible' : 'hidden'
+              }}
+            >
+              <video 
+                ref={el => topVideoRefs.current[index] = el}
+                className="absolute max-w-none object-cover size-full" 
+                controlsList="nodownload" 
+                playsInline
+                muted
+                preload="auto"
+                src={resolveAsset(src)}
+                style={{
+                  maskImage: index === clipIndex && isTopLayerFirst && isCandleMode 
+                    ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
+                    : 'none',
+                  WebkitMaskImage: index === clipIndex && isTopLayerFirst && isCandleMode 
+                    ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
+                    : 'none'
+                }}
+              />
+            </div>
+          ))}
         </div>
 
         {/* Control Buttons Container */}

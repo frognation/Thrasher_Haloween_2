@@ -15,3 +15,4 @@
 - [x] Fix persistent scroll issue on small screens: Identified and removed unnecessary overflow by fixing body/html height and adding touch-none.
 - [x] Implement Video Export feature (Sequential playback of 4 clips + interaction recording + MP4 download).
 - [x] Improve masking continuity: Keep masking effect visible even when mouse is outside the poster frame, as long as the mask radius overlaps the poster.
+- [x] Fix video transition flicker: Eliminate the black frame between clips by pre-rendering all video elements.
