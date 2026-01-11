@@ -14,3 +14,4 @@
 - [x] Archive conversation history to workspace.
 - [x] Fix persistent scroll issue on small screens: Identified and removed unnecessary overflow by fixing body/html height and adding touch-none.
 - [x] Implement Video Export feature (Sequential playback of 4 clips + interaction recording + MP4 download).
+- [x] Improve masking continuity: Keep masking effect visible even when mouse is outside the poster frame, as long as the mask radius overlaps the poster.

@@ -120,16 +120,21 @@ export default function App() {
     }
   }, [isCandleMode]);
 
-  // Handle mouse move
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setMousePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      });
-    }
-  };
+  // Handle global mouse move for smoother mask transition
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setMousePos({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        });
+      }
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
+  }, []);
 
   // Play/Pause toggle
   const togglePlayPause = () => {
@@ -246,7 +251,7 @@ export default function App() {
         ctx.globalAlpha = 1;
         ctx.drawImage(firstVideo, 0, 0, canvas.width, canvas.height);
 
-        if (isCandleMode && isHovering) {
+        if (isCandleMode) {
           // Setup masking for second layer
           ctx.save();
           ctx.beginPath();
@@ -255,10 +260,6 @@ export default function App() {
           ctx.globalAlpha = 1;
           ctx.drawImage(secondVideo, 0, 0, canvas.width, canvas.height);
           ctx.restore();
-          
-          // Add candle/glow effect if needed (optional for canvas)
-          // Since the CSS version uses transparent radial gradient, 
-          // we are effectively doing the opposite with clip() for simplicity and clarity.
         } else {
           ctx.globalAlpha = effectLayerOpacity;
           ctx.drawImage(secondVideo, 0, 0, canvas.width, canvas.height);
@@ -300,7 +301,6 @@ export default function App() {
         <div 
           ref={containerRef}
           className="relative w-full h-[1063.99px]"
-          onMouseMove={handleMouseMove}
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
           style={{ cursor: isHovering ? 'none' : 'auto' }}
@@ -324,10 +324,10 @@ export default function App() {
               src={currentBottomSrc}
               onEnded={handleClipEnded}
               style={{
-                maskImage: !isTopLayerFirst && isCandleMode && isHovering 
+                maskImage: !isTopLayerFirst && isCandleMode
                   ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
                   : 'none',
-                WebkitMaskImage: !isTopLayerFirst && isCandleMode && isHovering 
+                WebkitMaskImage: !isTopLayerFirst && isCandleMode 
                   ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
                   : 'none'
               }}
@@ -353,10 +353,10 @@ export default function App() {
               preload="auto"
               src={currentTopSrc}
               style={{
-                maskImage: isTopLayerFirst && isCandleMode && isHovering 
+                maskImage: isTopLayerFirst && isCandleMode 
                   ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
                   : 'none',
-                WebkitMaskImage: isTopLayerFirst && isCandleMode && isHovering 
+                WebkitMaskImage: isTopLayerFirst && isCandleMode 
                   ? `radial-gradient(circle 284px at ${mousePos.x}px ${mousePos.y}px, transparent 0%, transparent 236px, rgba(0,0,0,0.15) 255px, black 284px)`
                   : 'none'
               }}
